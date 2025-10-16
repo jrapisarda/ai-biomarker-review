@@ -45,6 +45,10 @@ def run(
     dry_run: bool = typer.Option(False, help="Skip AI rationales and only run validation/scoring"),
     progress: bool = typer.Option(True, help="Display progress bars"),
     flagged_dir: Path = typer.Option(Path("output/rationales"), help="Directory for flagged rationale reports"),
+    include_failed: bool = typer.Option(
+        True,
+        help="Process all rows through the AI, including those that failed validation",
+    ),
 ):
     """Execute the biomarker analysis pipeline."""
 
@@ -57,13 +61,21 @@ def run(
     LOGGER.info("Validated %s rows. %s failed quality checks.", len(df), len(result.failed_rows))
 
     records = result.dataframe.to_dict(orient="records")
-    if not result.failed_rows.empty:
-        LOGGER.info("Including %s quality-failed rows for rationale generation", len(result.failed_rows))
+    if include_failed and not result.failed_rows.empty:
+        LOGGER.info(
+            "Including %s quality-failed rows for rationale generation",
+            len(result.failed_rows),
+        )
         failed_records = result.failed_rows.to_dict(orient="records")
         for record in failed_records:
             record.setdefault("classification", "Quality Review")
             record.setdefault("composite_score", 0.0)
         records.extend(failed_records)
+    elif not include_failed and not result.failed_rows.empty:
+        LOGGER.info(
+            "Skipping %s quality-failed rows from AI processing per configuration",
+            len(result.failed_rows),
+        )
     ai_engine = AIAnalysisEngine(
         config,
         enable_api=False if dry_run else not disable_api,
@@ -83,6 +95,7 @@ def run(
         "config_file": str(config_file) if config_file else "<default>",
         "profile": profile,
         "dry_run": str(dry_run),
+        "include_failed": str(include_failed),
         "timestamp": datetime.utcnow().isoformat(),
         "log_file": str(log_path) if log_path else "",
     }
