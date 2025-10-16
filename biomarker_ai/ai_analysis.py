@@ -119,31 +119,39 @@ class AIAnalysisEngine:
         if not batch:
             return []
 
-        prompts: List[Dict[str, str]] = []
-        for row in batch:
-            prompt = self._build_prompt(row)
-            prompts.append({"role": "user", "content": prompt})
+        prompts: List[str] = [self._build_prompt(row) for row in batch]
 
-        responses: List[str] = []
+        api_texts: List[Optional[str]] = [None] * len(batch)
+        used_api_flags: List[bool] = [False] * len(batch)
         if self.enable_api and self._client:
-            try:
-                responses = self._client.generate([{"role": "system", "content": self._system_prompt()}] + prompts)
-            except Exception as exc:  # pragma: no cover - network error path
-                LOGGER.error("Falling back to offline rationale due to API error: %s", exc)
-                self.enable_api = False
-
-        if not responses or len(responses) != len(batch):
-            responses = [_fallback_rationale(row) for row in batch]
+            system_message = {"role": "system", "content": self._system_prompt()}
+            for idx, prompt in enumerate(prompts):
+                if not self.enable_api:
+                    break
+                try:
+                    response = self._client.generate([system_message, {"role": "user", "content": prompt}])
+                    if response:
+                        api_texts[idx] = response[0]
+                        used_api_flags[idx] = True
+                except Exception as exc:  # pragma: no cover - network error path
+                    LOGGER.error("Falling back to offline rationale due to API error: %s", exc)
+                    self.enable_api = False
+                    break
 
         results: List[Rationale] = []
-        for row, text in zip(batch, responses):
+        for idx, row in enumerate(batch):
+            text = api_texts[idx] if idx < len(api_texts) else None
+            used_api = used_api_flags[idx] if idx < len(used_api_flags) else False
+            if not text:
+                text = _fallback_rationale(row)
+                used_api = False
             results.append(
                 Rationale(
                     pair_id=str(row.get("pair_id")),
                     text=text,
                     metadata={
                         "model": self.config.api_settings.model,
-                        "used_api": str(self.enable_api),
+                        "used_api": str(used_api),
                     },
                 )
             )

@@ -52,7 +52,7 @@ class ClassificationThresholds(BaseModel):
 class ApiSettings(BaseModel):
     """API connectivity options for the AI analysis layer."""
 
-    base_url: str = Field("https://api.moonshot.cn/v1", description="Base URL for the Kimi API")
+    base_url: str = Field("https://api.moonshot.ai/v1", description="Base URL for the Kimi API")
     model: str = Field("kimi-k2-0905-preview", description="Model identifier to request")
     temperature: float = Field(0.6, ge=0, le=1.5)
     max_tokens: int = Field(512, ge=1, le=8192)

@@ -35,9 +35,15 @@ def build_excel_report(
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    rationale_map = {r.pair_id: r for r in rationales}
+    rationale_map = {str(r.pair_id): r for r in rationales}
     enriched = result.dataframe.copy()
-    enriched["ai_rationale"] = enriched["pair_id"].map(lambda pid: rationale_map.get(pid, Rationale(pid, "", {})).text)
+
+    def _lookup_rationale(pid: object) -> str:
+        key = "" if pd.isna(pid) else str(pid)
+        rationale = rationale_map.get(key)
+        return rationale.text if rationale else ""
+
+    enriched["ai_rationale"] = enriched["pair_id"].map(_lookup_rationale)
 
     summary_df = _summary_frame(enriched)
     quality_df = pd.DataFrame(
