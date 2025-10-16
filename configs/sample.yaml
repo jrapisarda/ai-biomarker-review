@@ -1,0 +1,18 @@
+thresholds:
+  max_p_value: 0.02
+  max_heterogeneity: 55.0
+  min_studies: 3
+  min_effect_size: 0.3
+  min_power_score: 0.75
+scoring:
+  statistical: 0.55
+  biological: 0.45
+classification:
+  green: 0.78
+  amber: 0.55
+api_settings:
+  temperature: 0.5
+  max_tokens: 600
+logging:
+  level: INFO
+  file: biomarker.log
