@@ -52,6 +52,7 @@ biomarker-ai run \
 - `--dry-run`: Skip external AI calls while still generating deterministic rationales.
 - `--disable-api`: Force offline mode even when API credentials exist.
 - `--flagged-dir`: Destination for Markdown rationale reports on Amber/Red or failed pairs.
+- `--include-failed / --no-include-failed`: Control whether validation failures are sent to the AI for rationale generation.
 
 ## Outputs
 
